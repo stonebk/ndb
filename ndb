@@ -1,0 +1,118 @@
+#!/bin/sh
+# Description: Wrapper for starting node-inspector and running node
+# Author: briankstone@gmail.com (Brian Stone)
+
+# Constants
+OK="[  \033[0;32mOK\033[0m  ]"
+FAIL="[ \033[0;31mFAIL\033[0m ]"
+WARN="\033[0;33mWARN\033[0m"
+ERROR="\033[0;31mERROR\033[0m"
+
+# Reset all variables that might be set
+file=""
+out="/dev/null"
+cmd="restart"
+
+# Print usage info
+usage()
+{
+    echo "
+\033[1;37mNAME\033[0m
+        ndb - start the node debugger and run script
+
+\033[1;37mSYNOPSIS\033[0m
+        \033[1;37mndb\033[0m [\033[4;37mOPTION\033[0m] \033[4;37mFILE\033[0m
+
+\033[1;37mDESCRIPTION\033[0m
+        Run the node script FILE in debug mode.
+        Start node-inspector listening to the node debug port.
+
+        \033[1;37m-h\033[0m, \033[1;37m--help\033[0m
+                display help information
+
+        \033[1;37m--start\033[0m
+                start node/node-inspector
+
+        \033[1;37m--stop\033[0m
+                stop node/node-inspector
+
+        \033[1;37m-o\033[0m \033[4;37mFILE\033[0m, \033[1;37m--output-file\033[0m \033[4;37mFILE\033[0m
+                log all messages to FILE
+"
+}
+
+# Start node/node-inspector
+start()
+{
+    echo -n "Starting node...           "
+    node --debug $file > $out 2>&1 &
+    echo "$OK"
+    echo -n "Starting node-inspector... "
+    node-inspector >/dev/null 2>&1 &
+    echo "$OK"
+}
+
+# Stop node/node-inspector
+stop()
+{
+    echo -n "Stopping node-inspector... "
+    pkill -f node-inspector
+    echo "$OK"
+    echo -n "Stopping node...           "
+    pkill -f "node --debug $file"
+    echo "$OK"
+}
+
+# Restart node/node-inspector
+restart()
+{
+    stop
+    start    
+}
+
+# Parse command line arguments
+while :
+do
+    case $1 in
+        -h | --help | -\?)
+            usage
+            exit 0
+            ;;
+        --start)
+            cmd="start"
+            shift
+            ;;
+        --stop)
+            cmd="stop"
+            shift
+            ;;
+        -o | --output-file)
+            out=$2
+            shift 2
+            ;;
+        --) # End of all options
+            shift
+            break
+            ;;
+        -*)
+            echo "$WARN: Unknown option (ignored): $1" >&2
+            shift
+            ;;
+        *)  # no more options. Stop while loop
+            break
+            ;;
+    esac
+done
+
+# Make sure file is given and exists
+if [ -z "$1" ]; then
+    echo "$ERROR: file not given. See --help" >&2
+    exit 1
+elif [ ! -e "$1" ]; then
+    echo "$ERROR: file does not exist." >&2
+    exit 1
+fi
+file=$1
+
+# Run the given command
+$cmd
