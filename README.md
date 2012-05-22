@@ -1,8 +1,5 @@
 ndb
 ===
-
-Description
------------
 ndb is a simple utility script for starting and stopping node and
 node-inspector
 
